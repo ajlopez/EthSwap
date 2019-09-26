@@ -77,5 +77,9 @@ contract('Swap', function (accounts) {
         assert.equal(data.amount, 1000);
         assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });
+    
+    it('cannot do proposal with zero value', async function () {
+        await expectThrow(this.swap.doProposal('0x01', token, 0, { from: bob }));
+    });
 });
 

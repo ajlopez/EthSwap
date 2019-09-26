@@ -39,6 +39,8 @@ contract Swap {
     }
     
     function doProposal(bytes32 sendID, address token, uint amount) public returns (bytes32) {
+        require(amount > 0);
+        
         bytes32 id = keccak256(abi.encodePacked(msg.sender, sendID, token, amount));
         
         proposals[id] = ProposalData(msg.sender, sendID, token, amount, 0);
