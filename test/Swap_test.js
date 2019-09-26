@@ -1,6 +1,8 @@
 
 const Swap = artifacts.require('./Swap.sol');
 
+const expectThrow = require('./utils').expectThrow;
+
 contract('Swap', function (accounts) {
     const owner = accounts[0];
     const alice = accounts[1];
@@ -42,5 +44,13 @@ contract('Swap', function (accounts) {
         assert.equal(data.token, token);
         assert.equal(data.amount, 1000);
         assert.equal(data.nonce, 0);
+    });
+    
+    it('cannot send zero value', async function () {
+        await expectThrow(this.swap.openSend(token, 0, { from: alice }));
+
+        const nonce = await this.swap.nonce();
+        
+        assert.equal(nonce, 0);
     });
 });
