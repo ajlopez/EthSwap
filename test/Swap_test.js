@@ -53,4 +53,29 @@ contract('Swap', function (accounts) {
         
         assert.equal(nonce, 0);
     });
+    
+    it('do proposal', async function () {
+        const result = await this.swap.doProposal('0x01', token, 1000, { from: bob });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'Proposal');
+        assert.equal(log.args.sendID, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.proposer, bob);
+        assert.equal(log.args.token, token);
+        assert.equal(log.args.amount, 1000);
+        
+        const data = await this.swap.proposals(log.args.id);
+        
+        assert.equal(data.sendID, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(data.proposer, bob);
+        assert.equal(data.token, token);
+        assert.equal(data.amount, 1000);
+        assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
+    });
 });
+
