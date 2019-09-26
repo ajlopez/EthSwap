@@ -18,7 +18,7 @@ contract('Swap', function (accounts) {
     });
     
     it('open send', async function () {
-        const result = await this.swap.openSend(token, 1000, bob, { from: alice });
+        const result = await this.swap.openSend(token, 1000, { from: alice });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -30,10 +30,17 @@ contract('Swap', function (accounts) {
         assert.equal(log.args.nonce, 0);
         assert.equal(log.args.token, token);
         assert.equal(log.args.amount, 1000);
-        assert.equal(log.args.receiver, bob);
+        assert.equal(log.args.sender, alice);
         
         const nonce = await this.swap.nonce();
         
         assert.equal(nonce, 1);
+        
+        const data = await this.swap.sends(log.args.id);
+        
+        assert.equal(data.sender, alice);
+        assert.equal(data.token, token);
+        assert.equal(data.amount, 1000);
+        assert.equal(data.nonce, 0);
     });
 });
