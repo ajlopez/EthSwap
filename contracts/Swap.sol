@@ -12,7 +12,7 @@ contract Swap {
     
     mapping (bytes32 => SendData) public sends;
     
-    event Send(bytes32 indexed id, uint nonce, address indexed token, address indexed receiver, uint amount);
+    event Send(bytes32 indexed id, uint nonce, address indexed receiver, address indexed token, uint amount);
     
     function openSend(address token, uint amount, address receiver) public returns (bytes32) {
         bytes32 id = keccak256(abi.encodePacked(nonce, token, amount, receiver));
