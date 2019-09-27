@@ -89,7 +89,11 @@ contract('Swap', function (accounts) {
     });
     
     it('accept deal', async function () {
-        const result = await this.swap.acceptDeal('0x01', dan, '0x02', { from: alice });
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.id;
+        
+        const result = await this.swap.acceptDeal(id, dan, '0x02', { from: alice });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -98,7 +102,7 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Deal');
-        assert.equal(log.args.id, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.id, id);
         assert.equal(log.args.executor, dan);
         assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
         
@@ -106,6 +110,30 @@ contract('Swap', function (accounts) {
         
         assert.equal(data.executor, dan);
         assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });
+    
+    it('cannot accept deal on non existent operation', async function () {
+        const id = '0x01';
+        
+        await expectThrow(this.swap.acceptDeal(id, dan, '0x02', { from: alice }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.equal(data.executor, 0);
+        assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
+    });
+    
+    it('only operation send can accept a deal', async function () {
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.id;
+        
+        await expectThrow(this.swap.acceptDeal(id, dan, '0x02', { from: bob }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.equal(data.executor, 0);
+        assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });    
 });
 
