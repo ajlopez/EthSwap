@@ -26,10 +26,12 @@ contract Swap {
     }
     
     mapping (bytes32 => OperationData) public operations;
+    mapping (bytes32 => DealData) public deals;
     mapping (bytes32 => ProposalData) public proposals;
     
     event Operation(bytes32 indexed id, address indexed sender, address receiver, address indexed token, uint amount, uint nonce);
-    event Proposal(bytes32 indexed id, bytes32 indexed sendID, address indexed proposer, address executor, address token, uint amount);
+    event Proposal(bytes32 indexed id, bytes32 indexed operationID, address indexed proposer, address executor, address token, uint amount);
+    event Deal(bytes32 indexed id, address indexed executor, bytes32 hash);
     
     function openOperation(address receiver, address token, uint amount) public returns (bytes32) {
         require(amount > 0);
@@ -45,16 +47,23 @@ contract Swap {
         return id;
     }
     
-    function makeProposal(address executor, bytes32 sendID, address token, uint amount) public returns (bytes32) {
+    function makeProposal(address executor, bytes32 operationID, address token, uint amount) public returns (bytes32) {
         require(amount > 0);
         
-        bytes32 id = keccak256(abi.encodePacked(msg.sender, executor, sendID, token, amount));
+        bytes32 id = keccak256(abi.encodePacked(msg.sender, executor, operationID, token, amount));
         
-        proposals[id] = ProposalData(msg.sender, executor, sendID, token, amount, 0);
+        proposals[id] = ProposalData(msg.sender, executor, operationID, token, amount, 0);
         
-        emit Proposal(id, sendID, msg.sender, executor, token, amount);
+        emit Proposal(id, operationID, msg.sender, executor, token, amount);
         
         return id;
+    }
+    
+    function acceptDeal(bytes32 id, address executor, bytes32 hash) public {
+        deals[id].executor = executor;
+        deals[id].hash = hash;
+        
+        emit Deal(id, executor, hash);
     }
 }
 

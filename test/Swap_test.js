@@ -68,7 +68,7 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Proposal');
-        assert.equal(log.args.sendID, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.operationID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(log.args.proposer, bob);
         assert.equal(log.args.executor, dan);
         assert.equal(log.args.token, token);
@@ -85,7 +85,27 @@ contract('Swap', function (accounts) {
     });
     
     it('cannot make proposal with zero value', async function () {
-        await expectThrow(this.swap.makeProposal('0x01', token, 0, { from: bob }));
+        await expectThrow(this.swap.makeProposal(dan, '0x01', token, 0, { from: bob }));
     });
+    
+    it('accept deal', async function () {
+        const result = await this.swap.acceptDeal('0x01', dan, '0x02', { from: alice });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'Deal');
+        assert.equal(log.args.id, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.executor, dan);
+        assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        
+        const data = await this.swap.deals(log.args.id);
+        
+        assert.equal(data.executor, dan);
+        assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });    
 });
 
