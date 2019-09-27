@@ -32,6 +32,7 @@ contract Swap {
     event Operation(bytes32 indexed id, address indexed sender, address receiver, address indexed token, uint amount, uint nonce);
     event Proposal(bytes32 indexed id, bytes32 indexed operationID, address indexed proposer, address executor, address token, uint amount);
     event Deal(bytes32 indexed id, address indexed executor, bytes32 hash);
+    event Confirmation(bytes32 indexed id, bytes32 hash);
     
     function openOperation(address receiver, address token, uint amount) public returns (bytes32) {
         require(amount > 0);
@@ -67,6 +68,12 @@ contract Swap {
         deals[id].hash = hash;
         
         emit Deal(id, executor, hash);
+    }
+    
+    function confirmDeal(bytes32 id, bytes32 hash) public {
+        proposals[id].hash = hash;
+        
+        emit Confirmation(id, hash);
     }
 }
 

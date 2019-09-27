@@ -161,6 +161,24 @@ contract('Swap', function (accounts) {
         
         assert.equal(data.executor, 0);
         assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
-    });    
+    });
+    
+    it('confirm deal', async function () {
+        const result = await this.swap.confirmDeal('0x01', '0x02', { from: bob });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'Confirmation');
+        assert.equal(log.args.id, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        
+        const data = await this.swap.proposals('0x01');
+        
+        assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });
 });
 
