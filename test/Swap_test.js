@@ -21,8 +21,8 @@ contract('Swap', function (accounts) {
         assert.equal(nonce, 0);
     });
     
-    it('open send', async function () {
-        const result = await this.swap.openSend(charlie, token, 1000, { from: alice });
+    it('open operation', async function () {
+        const result = await this.swap.openOperation(charlie, token, 1000, { from: alice });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -30,7 +30,7 @@ contract('Swap', function (accounts) {
         
         const log = result.logs[0];
         
-        assert.equal(log.event, 'Send');
+        assert.equal(log.event, 'Operation');
         assert.equal(log.args.token, token);
         assert.equal(log.args.amount, 1000);
         assert.equal(log.args.sender, alice);
@@ -41,7 +41,7 @@ contract('Swap', function (accounts) {
         
         assert.equal(nonce, 1);
         
-        const data = await this.swap.sends(log.args.id);
+        const data = await this.swap.operations(log.args.id);
         
         assert.equal(data.sender, alice);
         assert.equal(data.receiver, charlie);
@@ -50,16 +50,16 @@ contract('Swap', function (accounts) {
         assert.equal(data.nonce, 0);
     });
     
-    it('cannot send zero value', async function () {
-        await expectThrow(this.swap.openSend(charlie, token, 0, { from: alice }));
+    it('cannot open operation with zero value', async function () {
+        await expectThrow(this.swap.openOperation(charlie, token, 0, { from: alice }));
 
         const nonce = await this.swap.nonce();
         
         assert.equal(nonce, 0);
     });
     
-    it('do proposal', async function () {
-        const result = await this.swap.doProposal(dan, '0x01', token, 1000, { from: bob });
+    it('make proposal', async function () {
+        const result = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -76,7 +76,7 @@ contract('Swap', function (accounts) {
         
         const data = await this.swap.proposals(log.args.id);
         
-        assert.equal(data.sendID, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(data.operationID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(data.proposer, bob);
         assert.equal(data.executor, dan);
         assert.equal(data.token, token);
@@ -84,8 +84,8 @@ contract('Swap', function (accounts) {
         assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });
     
-    it('cannot do proposal with zero value', async function () {
-        await expectThrow(this.swap.doProposal('0x01', token, 0, { from: bob }));
+    it('cannot make proposal with zero value', async function () {
+        await expectThrow(this.swap.makeProposal('0x01', token, 0, { from: bob }));
     });
 });
 
