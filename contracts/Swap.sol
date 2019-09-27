@@ -61,6 +61,7 @@ contract Swap {
     
     function acceptDeal(bytes32 id, address executor, bytes32 hash) public {
         require(operations[id].sender == msg.sender);
+        require(deals[id].executor == address(0));
         
         deals[id].executor = executor;
         deals[id].hash = hash;

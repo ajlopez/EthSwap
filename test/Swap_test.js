@@ -112,6 +112,33 @@ contract('Swap', function (accounts) {
         assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
     });
     
+    it('cannot accept deal twice', async function () {
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.id;
+        
+        const result = await this.swap.acceptDeal(id, dan, '0x02', { from: alice });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'Deal');
+        assert.equal(log.args.id, id);
+        assert.equal(log.args.executor, dan);
+        assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+
+        await expectThrow(this.swap.acceptDeal(id, dan, '0x02', { from: alice }));
+        await expectThrow(this.swap.acceptDeal(id, charlie, '0x03', { from: alice }));
+        
+        const data = await this.swap.deals(log.args.id);
+        
+        assert.equal(data.executor, dan);
+        assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });
+    
     it('cannot accept deal on non existent operation', async function () {
         const id = '0x01';
         
