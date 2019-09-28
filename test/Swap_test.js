@@ -164,7 +164,11 @@ contract('Swap', function (accounts) {
     });
     
     it('confirm deal', async function () {
-        const result = await this.swap.confirmDeal('0x01', '0x02', { from: bob });
+        const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        
+        const id = resultprop.logs[0].args.id;
+        
+        const result = await this.swap.confirmDeal(id, '0x02', { from: bob });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -173,12 +177,32 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Confirmation');
-        assert.equal(log.args.id, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.id, id);
         assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        
+        const data = await this.swap.proposals(id);
+        
+        assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });
+    
+    it('only proposer can confirm deal', async function () {
+        const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        
+        const id = resultprop.logs[0].args.id;
+        
+        await expectThrow(this.swap.confirmDeal(id, '0x02', { from: alice }));
+        
+        const data = await this.swap.proposals(id);
+        
+        assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
+    });
+    
+    it('cannot confirm deal over non existent proposal', async function () {
+        await expectThrow(this.swap.confirmDeal('0x01', '0x02', { from: bob }));
         
         const data = await this.swap.proposals('0x01');
         
-        assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });
 });
 
