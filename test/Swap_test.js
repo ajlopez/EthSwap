@@ -185,6 +185,31 @@ contract('Swap', function (accounts) {
         assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
     });
     
+    it('cannot confirm deal twice or change hash', async function () {
+        const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        
+        const id = resultprop.logs[0].args.id;
+        
+        const result = await this.swap.confirmDeal(id, '0x02', { from: bob });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'Confirmation');
+        assert.equal(log.args.id, id);
+        assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        
+        await expectThrow(this.swap.confirmDeal(id, '0x02', { from: bob }));
+        await expectThrow(this.swap.confirmDeal(id, '0x01', { from: bob }));
+        
+        const data = await this.swap.proposals(id);
+        
+        assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });
+    
     it('only proposer can confirm deal', async function () {
         const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
         

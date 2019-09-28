@@ -72,6 +72,7 @@ contract Swap {
     
     function confirmDeal(bytes32 id, bytes32 hash) public {
         require(proposals[id].proposer == msg.sender);
+        require(proposals[id].hash == bytes32(0));
         
         proposals[id].hash = hash;
         
