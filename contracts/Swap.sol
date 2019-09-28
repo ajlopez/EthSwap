@@ -12,14 +12,15 @@ contract Swap {
     }
     
     struct DealData {
+        bytes32 proposalID;
         address executor;
         bytes32 hash;
     }
     
     struct ProposalData {
+        bytes32 operationID;
         address proposer;
         address executor;
-        bytes32 operationID;
         address token;
         uint amount;
         bytes32 hash;
@@ -29,10 +30,10 @@ contract Swap {
     mapping (bytes32 => DealData) public deals;
     mapping (bytes32 => ProposalData) public proposals;
     
-    event Operation(bytes32 indexed id, address indexed sender, address receiver, address indexed token, uint amount, uint nonce);
-    event Proposal(bytes32 indexed id, bytes32 indexed operationID, address indexed proposer, address executor, address token, uint amount);
-    event Deal(bytes32 indexed id, address indexed executor, bytes32 hash);
-    event Confirmation(bytes32 indexed id, bytes32 hash);
+    event Operation(bytes32 indexed operationID, address indexed sender, address receiver, address indexed token, uint amount, uint nonce);
+    event Proposal(bytes32 indexed proposalID, bytes32 indexed operationID, address indexed proposer, address executor, address token, uint amount);
+    event Deal(bytes32 indexed operationID, bytes32 indexed proposalID, address indexed executor, bytes32 hash);
+    event Confirmation(bytes32 indexed proposalID, bytes32 hash);
     
     function openOperation(address receiver, address token, uint amount) public returns (bytes32) {
         require(amount > 0);
@@ -48,35 +49,36 @@ contract Swap {
         return id;
     }
     
-    function makeProposal(address executor, bytes32 operationID, address token, uint amount) public returns (bytes32) {
+    function makeProposal(bytes32 operationID, address executor, address token, uint amount) public returns (bytes32) {
         require(amount > 0);
         
         bytes32 id = keccak256(abi.encodePacked(msg.sender, executor, operationID, token, amount));
         
-        proposals[id] = ProposalData(msg.sender, executor, operationID, token, amount, 0);
+        proposals[id] = ProposalData(operationID, msg.sender, executor, token, amount, 0);
         
         emit Proposal(id, operationID, msg.sender, executor, token, amount);
         
         return id;
     }
     
-    function acceptDeal(bytes32 id, address executor, bytes32 hash) public {
-        require(operations[id].sender == msg.sender);
-        require(deals[id].executor == address(0));
+    function acceptDeal(bytes32 operationID, bytes32 proposalID, address executor, bytes32 hash) public {
+        require(operations[operationID].sender == msg.sender);
+        require(deals[operationID].executor == address(0));
         
-        deals[id].executor = executor;
-        deals[id].hash = hash;
+        deals[operationID].proposalID = proposalID;
+        deals[operationID].executor = executor;
+        deals[operationID].hash = hash;
         
-        emit Deal(id, executor, hash);
+        emit Deal(operationID, proposalID, executor, hash);
     }
     
-    function confirmDeal(bytes32 id, bytes32 hash) public {
-        require(proposals[id].proposer == msg.sender);
-        require(proposals[id].hash == bytes32(0));
+    function confirmDeal(bytes32 proposalID, bytes32 hash) public {
+        require(proposals[proposalID].proposer == msg.sender);
+        require(proposals[proposalID].hash == bytes32(0));
         
-        proposals[id].hash = hash;
+        proposals[proposalID].hash = hash;
         
-        emit Confirmation(id, hash);
+        emit Confirmation(proposalID, hash);
     }
 }
 

@@ -41,7 +41,7 @@ contract('Swap', function (accounts) {
         
         assert.equal(nonce, 1);
         
-        const data = await this.swap.operations(log.args.id);
+        const data = await this.swap.operations(log.args.operationID);
         
         assert.equal(data.sender, alice);
         assert.equal(data.receiver, charlie);
@@ -59,7 +59,7 @@ contract('Swap', function (accounts) {
     });
     
     it('make proposal', async function () {
-        const result = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        const result = await this.swap.makeProposal('0x01', dan, token, 1000, { from: bob });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -74,7 +74,7 @@ contract('Swap', function (accounts) {
         assert.equal(log.args.token, token);
         assert.equal(log.args.amount, 1000);
         
-        const data = await this.swap.proposals(log.args.id);
+        const data = await this.swap.proposals(log.args.proposalID);
         
         assert.equal(data.operationID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(data.proposer, bob);
@@ -85,15 +85,15 @@ contract('Swap', function (accounts) {
     });
     
     it('cannot make proposal with zero value', async function () {
-        await expectThrow(this.swap.makeProposal(dan, '0x01', token, 0, { from: bob }));
+        await expectThrow(this.swap.makeProposal('0x01', dan, token, 0, { from: bob }));
     });
     
     it('accept deal', async function () {
         const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
         
-        const id = resultop.logs[0].args.id;
+        const id = resultop.logs[0].args.operationID;
         
-        const result = await this.swap.acceptDeal(id, dan, '0x02', { from: alice });
+        const result = await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -102,12 +102,14 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Deal');
-        assert.equal(log.args.id, id);
+        assert.equal(log.args.operationID, id);
+        assert.equal(log.args.proposalID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(log.args.executor, dan);
         assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
         
-        const data = await this.swap.deals(log.args.id);
+        const data = await this.swap.deals(log.args.operationID);
         
+        assert.equal(data.proposalID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(data.executor, dan);
         assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
     });
@@ -115,9 +117,9 @@ contract('Swap', function (accounts) {
     it('cannot accept deal twice', async function () {
         const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
         
-        const id = resultop.logs[0].args.id;
+        const id = resultop.logs[0].args.operationID;
         
-        const result = await this.swap.acceptDeal(id, dan, '0x02', { from: alice });
+        const result = await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -126,15 +128,17 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Deal');
-        assert.equal(log.args.id, id);
+        assert.equal(log.args.operationID, id);
+        assert.equal(log.args.proposalID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(log.args.executor, dan);
         assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
 
-        await expectThrow(this.swap.acceptDeal(id, dan, '0x02', { from: alice }));
-        await expectThrow(this.swap.acceptDeal(id, charlie, '0x03', { from: alice }));
+        await expectThrow(this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice }));
+        await expectThrow(this.swap.acceptDeal(id, '0x04', charlie, '0x03', { from: alice }));
         
-        const data = await this.swap.deals(log.args.id);
+        const data = await this.swap.deals(log.args.operationID);
         
+        assert.equal(data.proposalID, '0x0100000000000000000000000000000000000000000000000000000000000000');
         assert.equal(data.executor, dan);
         assert.equal(data.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
     });
@@ -142,31 +146,33 @@ contract('Swap', function (accounts) {
     it('cannot accept deal on non existent operation', async function () {
         const id = '0x01';
         
-        await expectThrow(this.swap.acceptDeal(id, dan, '0x02', { from: alice }));
+        await expectThrow(this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice }));
         
         const data = await this.swap.deals(id);
         
+        assert.equal(data.proposalID, '0x0000000000000000000000000000000000000000000000000000000000000000');
         assert.equal(data.executor, 0);
         assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });
     
-    it('only operation send can accept a deal', async function () {
+    it('only operation sender can accept a deal', async function () {
         const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
         
-        const id = resultop.logs[0].args.id;
+        const id = resultop.logs[0].args.operationID;
         
-        await expectThrow(this.swap.acceptDeal(id, dan, '0x02', { from: bob }));
+        await expectThrow(this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: bob }));
         
         const data = await this.swap.deals(id);
         
+        assert.equal(data.proposalID, '0x0000000000000000000000000000000000000000000000000000000000000000');
         assert.equal(data.executor, 0);
         assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });
     
     it('confirm deal', async function () {
-        const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        const resultprop = await this.swap.makeProposal('0x01', dan, token, 1000, { from: bob });
         
-        const id = resultprop.logs[0].args.id;
+        const id = resultprop.logs[0].args.proposalID;
         
         const result = await this.swap.confirmDeal(id, '0x02', { from: bob });
         
@@ -177,7 +183,7 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Confirmation');
-        assert.equal(log.args.id, id);
+        assert.equal(log.args.proposalID, id);
         assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
         
         const data = await this.swap.proposals(id);
@@ -186,9 +192,9 @@ contract('Swap', function (accounts) {
     });
     
     it('cannot confirm deal twice or change hash', async function () {
-        const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        const resultprop = await this.swap.makeProposal('0x01', dan, token, 1000, { from: bob });
         
-        const id = resultprop.logs[0].args.id;
+        const id = resultprop.logs[0].args.proposalID;
         
         const result = await this.swap.confirmDeal(id, '0x02', { from: bob });
         
@@ -199,7 +205,7 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'Confirmation');
-        assert.equal(log.args.id, id);
+        assert.equal(log.args.proposalID, id);
         assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
         
         await expectThrow(this.swap.confirmDeal(id, '0x02', { from: bob }));
@@ -211,9 +217,9 @@ contract('Swap', function (accounts) {
     });
     
     it('only proposer can confirm deal', async function () {
-        const resultprop = await this.swap.makeProposal(dan, '0x01', token, 1000, { from: bob });
+        const resultprop = await this.swap.makeProposal('0x01', dan, token, 1000, { from: bob });
         
-        const id = resultprop.logs[0].args.id;
+        const id = resultprop.logs[0].args.proposalID;
         
         await expectThrow(this.swap.confirmDeal(id, '0x02', { from: alice }));
         
