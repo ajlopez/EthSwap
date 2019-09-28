@@ -235,5 +235,26 @@ contract('Swap', function (accounts) {
         
         assert.equal(data.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
     });
+    
+    it('execute deal', async function () {
+        const id = '0x01';
+        
+        const result = await this.swap.executeDeal(id, '0x02', { from: charlie });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'DealExecution');
+        assert.equal(log.args.operationID, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.hash, 0);
+        assert.equal(log.args.preimage, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        
+        const data = await this.swap.deals(id);
+        
+        assert.ok(data.executed);
+    });
 });
 

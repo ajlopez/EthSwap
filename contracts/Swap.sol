@@ -15,6 +15,7 @@ contract Swap {
         bytes32 proposalID;
         address executor;
         bytes32 hash;
+        bool executed;
     }
     
     struct ProposalData {
@@ -33,6 +34,7 @@ contract Swap {
     event Operation(bytes32 indexed operationID, address indexed sender, address receiver, address indexed token, uint amount, uint nonce);
     event Proposal(bytes32 indexed proposalID, bytes32 indexed operationID, address indexed proposer, address executor, address token, uint amount);
     event Deal(bytes32 indexed operationID, bytes32 indexed proposalID, address indexed executor, bytes32 hash);
+    event DealExecution(bytes32 indexed operationID, address indexed executor, bytes32 hash, bytes32 preimage);
     event Confirmation(bytes32 indexed proposalID, bytes32 hash);
     
     function openOperation(address receiver, address token, uint amount) public returns (bytes32) {
@@ -70,6 +72,12 @@ contract Swap {
         deals[operationID].hash = hash;
         
         emit Deal(operationID, proposalID, executor, hash);
+    }
+    
+    function executeDeal(bytes32 operationID, bytes32 preimage) public {
+        deals[operationID].executed = true;
+        
+        emit DealExecution(operationID, msg.sender, deals[operationID].hash, preimage);
     }
     
     function confirmDeal(bytes32 proposalID, bytes32 hash) public {
