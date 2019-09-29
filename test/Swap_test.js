@@ -237,9 +237,13 @@ contract('Swap', function (accounts) {
     });
     
     it('execute deal', async function () {
-        const id = '0x01';
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
         
-        const result = await this.swap.executeDeal(id, '0x02', { from: charlie });
+        const id = resultop.logs[0].args.operationID;
+        
+        await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
+        
+        const result = await this.swap.executeDeal(id, '0x02', { from: dan });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -248,13 +252,64 @@ contract('Swap', function (accounts) {
         const log = result.logs[0];
         
         assert.equal(log.event, 'DealExecution');
-        assert.equal(log.args.operationID, '0x0100000000000000000000000000000000000000000000000000000000000000');
-        assert.equal(log.args.hash, 0);
+        assert.equal(log.args.operationID, id);
+        assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
         assert.equal(log.args.preimage, '0x0200000000000000000000000000000000000000000000000000000000000000');
         
         const data = await this.swap.deals(id);
         
         assert.ok(data.executed);
+    });
+    
+    it('cannot execute deal twice', async function () {
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.operationID;
+        
+        await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
+        
+        await this.swap.executeDeal(id, '0x02', { from: dan });
+        await expectThrow(this.swap.executeDeal(id, '0x02', { from: dan }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.ok(data.executed);
+    });
+
+    it('only accepted executor can execute deal', async function () {
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.operationID;
+        
+        await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
+        
+        await expectThrow(this.swap.executeDeal(id, '0x02', { from: charlie }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.ok(!data.executed);
+    });
+    
+    it('cannot execute deal over not accepted operation deal', async function () {
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.operationID;
+        
+        await expectThrow(this.swap.executeDeal(id, '0x02', { from: charlie }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.ok(!data.executed);
+    });
+    
+    it('cannot execute deal over non existent operation', async function () {
+        const id = '0x01';
+        
+        await expectThrow(this.swap.executeDeal(id, '0x02', { from: charlie }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.ok(!data.executed);
     });
 });
 

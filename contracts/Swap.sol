@@ -75,6 +75,9 @@ contract Swap {
     }
     
     function executeDeal(bytes32 operationID, bytes32 preimage) public {
+        require(deals[operationID].executor == msg.sender);
+        require(deals[operationID].executed == false);
+        
         deals[operationID].executed = true;
         
         emit DealExecution(operationID, msg.sender, deals[operationID].hash, preimage);
