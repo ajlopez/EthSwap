@@ -2,6 +2,7 @@
 const Swap = artifacts.require('./Swap.sol');
 
 const expectThrow = require('./utils').expectThrow;
+const randomHash = require('./utils').randomHash;
 
 contract('Swap', function (accounts) {
     const owner = accounts[0];
@@ -10,6 +11,9 @@ contract('Swap', function (accounts) {
     const charlie = accounts[3];
     const dan = accounts[4];
     const token = accounts[5];
+
+    const preimage = randomHash();
+    const hash = web3.utils.sha3(preimage);
 
     beforeEach(async function() {
         this.swap = await Swap.new();
@@ -241,9 +245,9 @@ contract('Swap', function (accounts) {
         
         const id = resultop.logs[0].args.operationID;
         
-        await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
+        await this.swap.acceptDeal(id, '0x01', dan, hash, { from: alice });
         
-        const result = await this.swap.executeDeal(id, '0x02', { from: dan });
+        const result = await this.swap.executeDeal(id, preimage, { from: dan });
         
         assert.ok(result);
         assert.ok(result.logs);
@@ -253,12 +257,26 @@ contract('Swap', function (accounts) {
         
         assert.equal(log.event, 'DealExecution');
         assert.equal(log.args.operationID, id);
-        assert.equal(log.args.hash, '0x0200000000000000000000000000000000000000000000000000000000000000');
-        assert.equal(log.args.preimage, '0x0200000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.hash, hash);
+        assert.equal(log.args.preimage, '0x' + preimage.toString('hex'));
         
         const data = await this.swap.deals(id);
         
         assert.ok(data.executed);
+    });
+    
+    it('cannot execute deal with invalid preimage', async function () {
+        const resultop = await this.swap.openOperation(charlie, token, 1000, { from: alice });
+        
+        const id = resultop.logs[0].args.operationID;
+        
+        await this.swap.acceptDeal(id, '0x01', dan, hash, { from: alice });
+        
+        await expectThrow(this.swap.executeDeal(id, '0x03', { from: dan }));
+        
+        const data = await this.swap.deals(id);
+        
+        assert.ok(!data.executed);
     });
     
     it('cannot execute deal twice', async function () {
@@ -266,10 +284,10 @@ contract('Swap', function (accounts) {
         
         const id = resultop.logs[0].args.operationID;
         
-        await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
+        await this.swap.acceptDeal(id, '0x01', dan, hash, { from: alice });
         
-        await this.swap.executeDeal(id, '0x02', { from: dan });
-        await expectThrow(this.swap.executeDeal(id, '0x02', { from: dan }));
+        await this.swap.executeDeal(id, preimage, { from: dan });
+        await expectThrow(this.swap.executeDeal(id, preimage, { from: dan }));
         
         const data = await this.swap.deals(id);
         
@@ -281,9 +299,9 @@ contract('Swap', function (accounts) {
         
         const id = resultop.logs[0].args.operationID;
         
-        await this.swap.acceptDeal(id, '0x01', dan, '0x02', { from: alice });
+        await this.swap.acceptDeal(id, '0x01', dan, hash, { from: alice });
         
-        await expectThrow(this.swap.executeDeal(id, '0x02', { from: charlie }));
+        await expectThrow(this.swap.executeDeal(id, preimage, { from: charlie }));
         
         const data = await this.swap.deals(id);
         
@@ -295,7 +313,7 @@ contract('Swap', function (accounts) {
         
         const id = resultop.logs[0].args.operationID;
         
-        await expectThrow(this.swap.executeDeal(id, '0x02', { from: charlie }));
+        await expectThrow(this.swap.executeDeal(id, preimage, { from: charlie }));
         
         const data = await this.swap.deals(id);
         
@@ -305,7 +323,7 @@ contract('Swap', function (accounts) {
     it('cannot execute deal over non existent operation', async function () {
         const id = '0x01';
         
-        await expectThrow(this.swap.executeDeal(id, '0x02', { from: charlie }));
+        await expectThrow(this.swap.executeDeal(id, preimage, { from: charlie }));
         
         const data = await this.swap.deals(id);
         

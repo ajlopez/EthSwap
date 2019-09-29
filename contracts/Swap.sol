@@ -77,6 +77,7 @@ contract Swap {
     function executeDeal(bytes32 operationID, bytes32 preimage) public {
         require(deals[operationID].executor == msg.sender);
         require(deals[operationID].executed == false);
+        require(deals[operationID].hash == keccak256(abi.encode(preimage)));
         
         deals[operationID].executed = true;
         
