@@ -329,5 +329,23 @@ contract('Swap', function (accounts) {
         
         assert.ok(!data.executed);
     });
+    
+    it('close deal', async function () {
+        const id = '0x01';
+        
+        const result = await this.swap.closeDeal(id, '0x02', { from: bob });
+        
+        assert.ok(result);
+        assert.ok(result.logs);
+        assert.equal(result.logs.length, 1);
+        
+        const log = result.logs[0];
+        
+        assert.equal(log.event, 'DealClose');
+        assert.equal(log.args.operationID, '0x0000000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.proposalID, '0x0100000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.hash, '0x0000000000000000000000000000000000000000000000000000000000000000');
+        assert.equal(log.args.preimage, '0x0200000000000000000000000000000000000000000000000000000000000000');
+    });
 });
 
