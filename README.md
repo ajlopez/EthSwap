@@ -1,4 +1,4 @@
-# EthMeta
+# EthSwap
 
 Atomic Swaps for Ethereum/RSK, WIP
 
@@ -9,6 +9,7 @@ Atomic Swaps for Ethereum/RSK, WIP
 - [The Risks of Atomic Swaps & How to Mitigate Them](https://medium.com/@blockdx/the-risks-of-atomic-swaps-how-to-mitigate-them-6424a6975c6)
 - [Exploring Commit-Reveal Schemes on Ethereum](https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8)
 - [Liquality](https://liquality.io/)
+- [Consensus for Crosschain Communications](https://arxiv.org/pdf/2004.09494.pdf)
 
 ## Versions
 
